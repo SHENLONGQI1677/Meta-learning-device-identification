@@ -112,50 +112,6 @@ for iteration in range(niterations):
         {name: weights_before[name] + (weights_after[name] - weights_before[name]) * outerstepsize for name in
          weights_before})
 
-    if iteration + 1 >= 400 and (iteration + 1) % 100 == 0:
-        sample_num_outer20_accs = {i + 1: [] for i in range(10)}  # 存储每个 sample_num 在 outerstep=20 时的精度
-
-        for loop_i in range(100):
-            for sample_num in range(10):
-                sample_num += 1
-                x_test, y_test = gen_task(train_samples=500 + sample_num)
-                test_scale = 1 - (sample_num) / (500 + sample_num)
-
-                x_new_train, x_new_test, y_new_train, y_new_test = train_test_split(
-                    x_test, y_test, test_size=test_scale, stratify=y_test
-                )
-                weights_before = deepcopy(model.state_dict())
-
-                # 内循环训练
-                for outerstep in range(30):
-                    loss = train_on_batch(x_new_train, y_new_train)
-
-                # 第 20 次 outerstep 后预测
-                predicted = predict(x_new_test)
-                predicted = abs(predicted.round())
-                accuracy = calculate_accuracy(predicted, y_new_test)
-                sample_num_outer20_accs[sample_num].append(accuracy)
-                print(f"loop_i {loop_i + 1}, sample_nums: {len(x_new_train)}, Outerstep:{outerstep + 1},Accuracy: {accuracy:.3f}")
-                model.load_state_dict(weights_before)  # 恢复初始状态
-
-        # 计算平均值并保存到 CSV
-        avg_results = []
-        for sample_num, acc_list in sample_num_outer20_accs.items():
-            avg_acc = sum(acc_list) / len(acc_list)
-            avg_results.append((sample_num, avg_acc))
-
-        # 保存为 CSV
-        iter_num = iteration + 1
-        result_folder = os.path.join(folder_path, f"Iteration_{iter_num}")
-        os.makedirs(result_folder, exist_ok=True)
-        csv_path = os.path.join(result_folder, "outerstep20_avg_accuracy.csv")
-
-        with open(csv_path, "w", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Sample_Num", "Avg_Accuracy_Outerstep_20"])
-            writer.writerows(avg_results)
-
-        print(f"第 {iter_num} 次迭代：Outerstep=20 的平均准确率已保存到 {csv_path}")
 
     # **Meta-检验并计算准确率**
     if (iteration + 1) % 800 == 0:
@@ -234,25 +190,6 @@ plt.ylabel("Accuracy")
 plt.grid(True)
 plt.savefig(os.path.join(folder_path, "global_accuracy.png"))
 plt.show()
-#         with open(os.path.join(iteration_folder, "accuracy_data.json"), "w", encoding="utf-8") as file:
-#             json.dump(Different_sample_nums_accuracies, file, indent=4)
-#     if Different_sample_nums_accuracies:
-#         global_accuracies.append(
-#             np.mean([acc for acc_list in Different_sample_nums_accuracies.values() for _, acc in acc_list]))
-#
-# # **绘制准确率曲线**
-# file_path = os.path.join(folder_path, "global_accuracies.json")
-# with open(file_path, "w", encoding="utf-8") as file:
-#     json.dump(global_accuracies, file, indent=4)
-#
-# plt.figure(figsize=(6, 4))
-# plt.plot(range(1, len(global_accuracies) + 1), global_accuracies, marker="o")
-# plt.title("Global Accuracy over Iterations")
-# plt.xlabel("Iteration (x20)")
-# plt.ylabel("Accuracy")
-# plt.grid(True)
-# plt.savefig(os.path.join(folder_path, "global_accuracy.png"))
-# plt.show()
 
 
 
